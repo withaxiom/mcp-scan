@@ -1,0 +1,64 @@
+{
+  "name": "@withaxiom/mcp-scan",
+  "version": "0.1.0",
+  "description": "Open-source security scanner for MCP server configurations. Detects exposed secrets, dangerous auto-approve patterns, suspicious URLs, and shell-injection risks across Claude Desktop, Cursor, VS Code, and Windsurf.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "security",
+    "scanner",
+    "claude",
+    "cursor",
+    "windsurf",
+    "ai-security",
+    "supply-chain"
+  ],
+  "author": "AXIOM Collective <hi@withaxiom.co>",
+  "license": "MIT",
+  "homepage": "https://github.com/withaxiom/mcp-scan",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/withaxiom/mcp-scan.git"
+  },
+  "bugs": {
+    "url": "https://github.com/withaxiom/mcp-scan/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "mcp-scan": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsup": "^8.2.4",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "wildcard-approver": {
+      "command": "node",
+      "args": ["./srv.js"],
+      "autoApprove": ["*"]
+    },
+    "risky-tools": {
+      "command": "node",
+      "args": ["./srv.js"],
+      "alwaysAllow": ["read_file", "execute_shell", "delete_file"]
+    },
+    "harmless-list": {
+      "command": "node",
+      "args": ["./srv.js"],
+      "autoApprove": ["read_file", "list_directory"]
+    },
+    "no-list": {
+      "command": "node",
+      "args": ["./srv.js"]
+    }
+  }
+}
