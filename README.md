@@ -1,6 +1,8 @@
 # mcp-scan
 
-Open-source security scanner for **MCP (Model Context Protocol) server configurations**.
+> **Internal note (2026-04-27):** `mcp-scan` is the **private internal scanner** that feeds the **Ledgermark** SaaS evidence-layer. Repo stays private; sensor is not publicly distributed. The customer-facing product is Ledgermark (cross-vendor evidence + attestation layer that ingests output from this scanner alongside Snyk, thynkq, runtime telemetry, etc.). See `[[01-Ventures/Ledgermark/_status]]` in the AXIOM Collective vault for context. Brand "MCPGuard" was retired 2026-04-27 — see `[[DECISION_LOG]]` 2026-04-27 evening.
+
+Security scanner for **MCP (Model Context Protocol) server configurations**.
 
 `mcp-scan` reads the MCP configs you've already installed for Claude Desktop, Cursor, Windsurf, and Claude Code, then flags four classes of issue that show up constantly in the wild:
 
@@ -11,7 +13,7 @@ Open-source security scanner for **MCP (Model Context Protocol) server configura
 
 It also remembers what your servers looked like last run and tells you if any of them silently changed — the foundation of **rug-pull detection** for MCP supply-chain attacks.
 
-> Built by [AXIOM Collective](https://withaxiom.co). The cloud version (continuous monitoring, org-wide policy, SOC 2 evidence) lives at **MCPGuard** — coming soon.
+> Built by [AXIOM Collective](https://withaxiom.co). This package (`@withaxiom/mcp-scan`) is the private internal sensor that feeds the **Ledgermark** SaaS evidence-layer (continuous cross-org monitoring, signed evidence chains, RBAC/SSO, SOC 2 / ISO evidence packs, Vanta/Drata push). Ledgermark — coming soon, separate codebase.
 
 ---
 
@@ -112,7 +114,7 @@ v0.1 (this release) is intentionally focused on local-first, four-rules-done-wel
 
 - **v0.2**: more rules (manifest signature checks, package-pinning, prompt-injection patterns), CI workflow, JSON Schema for config files.
 - **v0.3**: `mcp-scan watch` for live monitoring, sandboxed test-launch of servers.
-- **MCPGuard (cloud)**: continuous scanning across an entire org, policy as code, SOC 2 / ISO 27001 evidence packs.
+- **Ledgermark (cloud SaaS, separate codebase)**: continuous scanning across an entire org, policy as code, signed evidence chains, multi-tenant RBAC/SSO, SOC 2 / ISO 27001 evidence packs, Vanta/Drata push. (Formerly "MCPGuard"; renamed 2026-04-27.)
 
 ## Contributing
 
