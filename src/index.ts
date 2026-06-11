@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { Command } from "commander";
 import { scan, hasGatingFindings } from "./scanner.js";
 import { renderJson, renderPretty, renderSarif } from "./reporters.js";
@@ -8,6 +9,7 @@ interface CliOpts {
   sarif?: boolean;
   noState?: boolean;
   failOn?: string;
+  verbose?: boolean;
 }
 
 const program = new Command();
@@ -32,11 +34,18 @@ program
     "--no-state",
     "Skip writing ~/.mcp-scan/state.json. Drift detection still runs against any prior state but won't update it.",
   )
+  .option(
+    "--verbose",
+    "Log discovery paths, per-rule progress, and per-phase timing to stderr. Scan results are unaffected.",
+  )
   .action(async (opts: CliOpts) => {
     try {
       const result = await scan({
         configPaths: opts.config ?? [],
         noState: opts.noState,
+        log: opts.verbose
+          ? (line) => process.stderr.write(chalk.gray(`[verbose] ${line}`) + "\n")
+          : undefined,
       });
 
       if (opts.sarif) {

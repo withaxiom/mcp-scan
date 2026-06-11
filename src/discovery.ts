@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { DiscoveredConfig, McpServerEntry } from "./types.js";
+import { DiscoveredConfig, McpServerEntry, ScanLogger } from "./types.js";
 
 interface KnownLocation {
   client: string;
@@ -125,21 +125,36 @@ export async function loadConfig(
 /**
  * Walk all known locations + any user-supplied paths, returning every config
  * we could parse. Missing files are silently dropped.
+ *
+ * When a `log` sink is provided (--verbose) every candidate path is reported,
+ * including the ones that were skipped. Logging never changes discovery
+ * behavior — the extra existence probe only runs to label skips accurately.
  */
 export async function discoverConfigs(
   extraPaths: string[] = [],
+  log?: ScanLogger,
 ): Promise<DiscoveredConfig[]> {
   const results: DiscoveredConfig[] = [];
 
+  const probe = async (p: string, client: string): Promise<void> => {
+    const cfg = await loadConfig(p, client);
+    if (cfg) {
+      results.push(cfg);
+      log?.(
+        `discovery: ${p} [${client}] — ${Object.keys(cfg.servers).length} server(s)`,
+      );
+    } else if (log) {
+      const reason = (await fileExists(p)) ? "unparsable JSON" : "not found";
+      log(`discovery: ${p} [${client}] — skipped (${reason})`);
+    }
+  };
+
   for (const loc of KNOWN_LOCATIONS) {
-    const cfg = await loadConfig(loc.resolve(), loc.client);
-    if (cfg) results.push(cfg);
+    await probe(loc.resolve(), loc.client);
   }
 
   for (const p of extraPaths) {
-    const abs = path.resolve(p);
-    const cfg = await loadConfig(abs, "custom");
-    if (cfg) results.push(cfg);
+    await probe(path.resolve(p), "custom");
   }
 
   return results;

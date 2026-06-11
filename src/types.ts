@@ -76,6 +76,12 @@ export interface Rule {
   check(ctx: RuleContext): Finding[];
 }
 
+/**
+ * Sink for verbose diagnostics (--verbose). Implementations decide where the
+ * lines go (the CLI writes them to stderr so stdout stays machine-parseable).
+ */
+export type ScanLogger = (line: string) => void;
+
 export const SEVERITY_RANK: Record<Severity, number> = {
   info: 0,
   low: 1,
