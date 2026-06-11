@@ -70,4 +70,48 @@ describe("state / drift detection", () => {
     const result = await detectAndRecordChanges([b], { dir });
     expect(result).toEqual([]);
   });
+
+  it("attaches a redacted line diff to drift findings; secrets never reach state or diff", async () => {
+    const fakePat = "ghp" + "_" + "aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789";
+    const v1 = buildConfig({
+      app: { command: "node", args: ["./app.js"] },
+    });
+    await detectAndRecordChanges([v1], { dir });
+
+    const v2 = buildConfig({
+      app: {
+        command: "node",
+        args: ["./app.js", "--extra"],
+        env: { TOKEN: fakePat },
+      },
+    });
+    const findings = await detectAndRecordChanges([v2], { dir });
+    expect(findings).toHaveLength(1);
+
+    const diff = findings[0].diff!;
+    expect(diff.some((l) => l.startsWith("+ ") && l.includes("--extra"))).toBe(true);
+    expect(diff.some((l) => l.startsWith("- ") && l.includes('"./app.js"'))).toBe(true);
+    // Redaction: the raw secret appears nowhere — not in the diff, not on disk.
+    expect(diff.join("\n")).not.toContain(fakePat);
+    const stateRaw = await fs.readFile(path.join(dir, "state.json"), "utf8");
+    expect(stateRaw).not.toContain(fakePat);
+    expect(stateRaw).toContain("ghp_…89"); // masked form is what's persisted
+  });
+
+  it("degrades to hash-only evidence when prior state has no snapshot (old format)", async () => {
+    const v1 = buildConfig({ app: { command: "node", args: ["./a.js"] } });
+    await detectAndRecordChanges([v1], { dir });
+
+    // Strip the snapshot to simulate a state file written by an older version.
+    const stateFile = path.join(dir, "state.json");
+    const state = JSON.parse(await fs.readFile(stateFile, "utf8"));
+    for (const k of Object.keys(state.servers)) delete state.servers[k].snapshot;
+    await fs.writeFile(stateFile, JSON.stringify(state), "utf8");
+
+    const v2 = buildConfig({ app: { command: "node", args: ["./b.js"] } });
+    const findings = await detectAndRecordChanges([v2], { dir });
+    expect(findings).toHaveLength(1);
+    expect(findings[0].diff).toBeUndefined();
+    expect(findings[0].evidence).toMatch(/prev=[0-9a-f]{12} now=[0-9a-f]{12}/);
+  });
 });

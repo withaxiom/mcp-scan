@@ -47,6 +47,30 @@ export function maskSecret(value: string): string {
   return `${value.slice(0, 4)}…${value.slice(-2)} (${value.length} chars)`;
 }
 
+/**
+ * Return a masked form of `value` when it looks like a secret (known token
+ * format or the same high-entropy heuristic the exposed-secrets rule uses),
+ * otherwise the original string. Used when persisting redacted config
+ * snapshots for drift diffs — anything the rule would flag never lands on
+ * disk or in diff output in full.
+ */
+export function redactIfSecret(value: string): string {
+  if (!value || PLACEHOLDER_RE.test(value.trim())) return value;
+  for (const { re } of SECRET_PATTERNS) {
+    if (re.test(value)) return maskSecret(value);
+  }
+  const trimmed = value.trim();
+  if (
+    trimmed.length >= 30 &&
+    !/\s/.test(trimmed) &&
+    !trimmed.includes("/") &&
+    shannonEntropy(trimmed) >= 4.0
+  ) {
+    return maskSecret(value);
+  }
+  return value;
+}
+
 interface Hit {
   pattern: string;
   masked: string;

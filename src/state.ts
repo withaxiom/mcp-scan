@@ -3,11 +3,21 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { DiscoveredConfig, Finding } from "./types.js";
+import { diffLines } from "./diff.js";
+import { maskSecret, redactIfSecret } from "./rules/exposed-secrets.js";
 
 interface ServerHashEntry {
   hash: string;
   /** ISO timestamp of the run that recorded this hash. */
   seenAt: string;
+  /**
+   * Redacted copy of the server config from that run, kept so drift findings
+   * can show a real diff instead of two hashes. Env values are always masked
+   * and other strings are masked when they look like secrets — the state file
+   * must never become a second place secrets live. Optional: entries written
+   * by older versions don't have it, and diffing degrades gracefully.
+   */
+  snapshot?: unknown;
 }
 
 interface StateFile {
@@ -43,6 +53,46 @@ function stableStringify(value: unknown): string {
       .join(",") +
     "}"
   );
+}
+
+/**
+ * Deep-copy a server config with secret-bearing strings masked. Env values
+ * are masked unconditionally (that's where credentials live); all other
+ * strings are masked only when they match the exposed-secrets heuristics.
+ * Display/persistence only — drift hashing always uses the full config.
+ */
+export function redactServer(server: unknown): unknown {
+  const walk = (value: unknown, inEnv: boolean): unknown => {
+    if (typeof value === "string") {
+      return inEnv ? maskSecret(value) : redactIfSecret(value);
+    }
+    if (Array.isArray(value)) return value.map((v) => walk(v, inEnv));
+    if (value && typeof value === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        out[k] = walk(v, inEnv || k === "env");
+      }
+      return out;
+    }
+    return value;
+  };
+  return walk(server, false);
+}
+
+/** Stable, human-readable JSON lines (sorted keys) for diff display. */
+function snapshotLines(snapshot: unknown): string[] {
+  const sortKeys = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(sortKeys);
+    if (value && typeof value === "object") {
+      const out: Record<string, unknown> = {};
+      for (const k of Object.keys(value as Record<string, unknown>).sort()) {
+        out[k] = sortKeys((value as Record<string, unknown>)[k]);
+      }
+      return out;
+    }
+    return value;
+  };
+  return JSON.stringify(sortKeys(snapshot), null, 2).split("\n");
 }
 
 async function readState(dir: string): Promise<StateFile> {
@@ -82,10 +132,16 @@ export async function detectAndRecordChanges(
     for (const [name, server] of Object.entries(cfg.servers)) {
       const key = `${cfg.path}::${name}`;
       const hash = hashServer(server);
-      next.servers[key] = { hash, seenAt: now };
+      const snapshot = redactServer(server);
+      next.servers[key] = { hash, seenAt: now, snapshot };
 
       const previous = prior.servers[key];
       if (previous && previous.hash !== hash) {
+        // Older state files have no snapshot — degrade to hash-only evidence.
+        const diff =
+          previous.snapshot !== undefined
+            ? diffLines(snapshotLines(previous.snapshot), snapshotLines(snapshot))
+            : undefined;
         findings.push({
           rule: "changed-server-config",
           severity: "medium",
@@ -93,6 +149,7 @@ export async function detectAndRecordChanges(
           server: name,
           message: `MCP server "${name}" config changed since last scan (possible rug-pull or unintended modification).`,
           evidence: `prev=${previous.hash.slice(0, 12)} now=${hash.slice(0, 12)} (last seen ${previous.seenAt})`,
+          ...(diff ? { diff } : {}),
         });
       }
     }

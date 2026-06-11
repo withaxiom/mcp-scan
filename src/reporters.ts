@@ -59,6 +59,9 @@ export function renderPretty(result: ScanResult): string {
         if (f.evidence) {
           lines.push(chalk.gray(`      evidence: ${f.evidence}`));
         }
+        if (f.diff) {
+          lines.push(...renderDiff(f.diff, "      "));
+        }
       }
       lines.push("");
     }
@@ -89,6 +92,24 @@ export function renderQuiet(result: ScanResult): string {
   }
   lines.push("");
   return lines.join("\n");
+}
+
+/**
+ * Color a unified-style diff (see Finding.diff): removed lines red, added
+ * lines green, context dim. Chalk handles NO_COLOR / non-TTY downgrade
+ * automatically, so piped output stays plain text.
+ */
+function renderDiff(diff: string[], indent: string): string[] {
+  const changed = diff.some((l) => l.startsWith("+ ") || l.startsWith("- "));
+  if (!changed) {
+    // Possible when the only change is inside a redacted (masked) value.
+    return [chalk.gray(`${indent}(change is within redacted values — no visible diff)`)];
+  }
+  return diff.map((l) => {
+    if (l.startsWith("+ ")) return chalk.green(`${indent}${l}`);
+    if (l.startsWith("- ")) return chalk.red(`${indent}${l}`);
+    return chalk.dim(`${indent}${l}`);
+  });
 }
 
 function groupFindings(

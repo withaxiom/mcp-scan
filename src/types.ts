@@ -53,6 +53,13 @@ export interface Finding {
    * full secret values — rules that detect secrets should mask them.
    */
   evidence?: string;
+  /**
+   * Unified-style diff lines ("- removed", "+ added", "  context") for
+   * findings that describe a change (e.g. changed-server-config). Plain
+   * strings — the pretty reporter applies color, JSON carries them as-is.
+   * Built from redacted snapshots; never contains full secret values.
+   */
+  diff?: string[];
 }
 
 export interface ScanResult {
