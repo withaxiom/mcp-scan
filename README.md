@@ -50,9 +50,10 @@ mcp-scan --config ./team-mcp-config.json --config ./other.json
 ## Output formats
 
 ```bash
-mcp-scan            # Pretty terminal output (default)
-mcp-scan --json     # Machine-readable JSON
-mcp-scan --sarif    # SARIF 2.1.0 for CI / GitHub code scanning
+mcp-scan                # Pretty terminal output (default)
+mcp-scan --json         # Machine-readable JSON (compact, jq-friendly)
+mcp-scan --json-pretty  # Same JSON, 2-space indented
+mcp-scan --sarif        # SARIF 2.1.0 for CI / GitHub code scanning
 ```
 
 Exit code is **non-zero** if any `high` or `critical` finding is reported (Snyk-style — drop it into CI with confidence).

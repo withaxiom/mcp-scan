@@ -131,7 +131,12 @@ function summaryLine(findings: Finding[]): string {
   return chalk.bold(`Summary: ${findings.length} finding(s)  `) + parts.join("  ");
 }
 
-export function renderJson(result: ScanResult): string {
+/**
+ * JSON report. Compact (single-line) by default for piping into jq / log
+ * aggregation; pass `pretty` (--json-pretty) for human-diffable 2-space
+ * indentation. Content is identical either way.
+ */
+export function renderJson(result: ScanResult, pretty = false): string {
   return JSON.stringify(
     {
       version: "0.1.0",
@@ -145,7 +150,7 @@ export function renderJson(result: ScanResult): string {
       findings: result.findings,
     },
     null,
-    2,
+    pretty ? 2 : undefined,
   );
 }
 

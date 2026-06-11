@@ -11,6 +11,7 @@ import {
 interface CliOpts {
   config?: string[];
   json?: boolean;
+  jsonPretty?: boolean;
   sarif?: boolean;
   noState?: boolean;
   failOn?: string;
@@ -34,7 +35,14 @@ program
     (value: string, prev: string[] = []) => prev.concat([value]),
     [] as string[],
   )
-  .option("--json", "Emit findings as JSON instead of the pretty terminal report.")
+  .option(
+    "--json",
+    "Emit findings as compact JSON (one line, jq-friendly) instead of the pretty terminal report.",
+  )
+  .option(
+    "--json-pretty",
+    "Emit findings as 2-space-indented JSON. Same content as --json; implies JSON output.",
+  )
   .option("--sarif", "Emit findings as SARIF 2.1.0 (for CI / GitHub code scanning).")
   .option(
     "--no-state",
@@ -62,8 +70,10 @@ program
 
       if (opts.sarif) {
         process.stdout.write(renderSarif(result) + "\n");
-      } else if (opts.json) {
-        process.stdout.write(renderJson(result) + "\n");
+      } else if (opts.json || opts.jsonPretty) {
+        // --json-pretty wins when both are given — it is the same content,
+        // just indented.
+        process.stdout.write(renderJson(result, opts.jsonPretty) + "\n");
       } else if (opts.quiet) {
         process.stdout.write(renderQuiet(result));
       } else {
