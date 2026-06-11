@@ -1,7 +1,12 @@
 import chalk from "chalk";
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { scan, hasGatingFindings } from "./scanner.js";
-import { renderJson, renderPretty, renderSarif } from "./reporters.js";
+import {
+  renderJson,
+  renderPretty,
+  renderQuiet,
+  renderSarif,
+} from "./reporters.js";
 
 interface CliOpts {
   config?: string[];
@@ -10,6 +15,7 @@ interface CliOpts {
   noState?: boolean;
   failOn?: string;
   verbose?: boolean;
+  quiet?: boolean;
 }
 
 const program = new Command();
@@ -38,6 +44,12 @@ program
     "--verbose",
     "Log discovery paths, per-rule progress, and per-phase timing to stderr. Scan results are unaffected.",
   )
+  .addOption(
+    new Option(
+      "--quiet",
+      "Print critical findings only (silent when none). Affects the terminal report; --json/--sarif output is unchanged. Exit codes are unchanged. Mutually exclusive with --verbose.",
+    ).conflicts("verbose"),
+  )
   .action(async (opts: CliOpts) => {
     try {
       const result = await scan({
@@ -52,6 +64,8 @@ program
         process.stdout.write(renderSarif(result) + "\n");
       } else if (opts.json) {
         process.stdout.write(renderJson(result) + "\n");
+      } else if (opts.quiet) {
+        process.stdout.write(renderQuiet(result));
       } else {
         process.stdout.write(renderPretty(result));
       }

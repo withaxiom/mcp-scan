@@ -69,6 +69,28 @@ export function renderPretty(result: ScanResult): string {
   return lines.join("\n");
 }
 
+/**
+ * Quiet report (--quiet): critical findings only, one block per finding,
+ * no banner, no config inventory. Prints nothing when there are no critical
+ * findings — classic quiet semantics. Exit-code gating is unaffected (it is
+ * computed from the full finding set in the CLI).
+ */
+export function renderQuiet(result: ScanResult): string {
+  const criticals = result.findings.filter((f) => f.severity === "critical");
+  if (criticals.length === 0) return "";
+
+  const lines: string[] = [];
+  for (const f of criticals) {
+    lines.push(
+      `${SEV_COLOR.critical("CRITICAL")} ${chalk.bold(f.rule)}  ${f.file}${f.server ? chalk.gray(` :: ${f.server}`) : ""}`,
+    );
+    lines.push(`  ${f.message}`);
+    if (f.evidence) lines.push(chalk.gray(`  evidence: ${f.evidence}`));
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
 function groupFindings(
   findings: Finding[],
 ): Map<string, Map<string | null, Finding[]>> {
