@@ -24,6 +24,8 @@ export function renderPretty(result: ScanResult): string {
       ),
     );
     lines.push("");
+    lines.push(renderFooter(result));
+    lines.push("");
     return lines.join("\n");
   }
 
@@ -40,6 +42,8 @@ export function renderPretty(result: ScanResult): string {
 
   if (findings.length === 0) {
     lines.push(chalk.green.bold("OK  No issues found."));
+    lines.push("");
+    lines.push(renderFooter(result));
     lines.push("");
     return lines.join("\n");
   }
@@ -68,19 +72,47 @@ export function renderPretty(result: ScanResult): string {
   }
 
   lines.push(summaryLine(findings));
+  lines.push(renderFooter(result));
   lines.push("");
   return lines.join("\n");
 }
 
 /**
+ * One-line scan footer: "Scanned N servers · M issues · K regressions".
+ * Shown after every pretty scan AND in --quiet (it is the critical summary);
+ * omitted from --json/--sarif so machine output stays pure.
+ *
+ * "Issues" are rule findings; "regressions" are changed-server-config drift
+ * findings — the two partition the total finding count. Plurals are fixed
+ * for grep-ability.
+ */
+export function renderFooter(result: ScanResult): string {
+  const servers = result.configsScanned.reduce(
+    (n, c) => n + Object.keys(c.servers).length,
+    0,
+  );
+  const regressions = result.findings.filter(
+    (f) => f.rule === "changed-server-config",
+  ).length;
+  const issues = result.findings.length - regressions;
+  const sep = chalk.dim(" · ");
+  return (
+    `Scanned ${chalk.bold(servers)} servers` +
+    sep +
+    `${chalk.bold(issues)} issues` +
+    sep +
+    `${chalk.bold(regressions)} regressions`
+  );
+}
+
+/**
  * Quiet report (--quiet): critical findings only, one block per finding,
- * no banner, no config inventory. Prints nothing when there are no critical
- * findings — classic quiet semantics. Exit-code gating is unaffected (it is
- * computed from the full finding set in the CLI).
+ * no banner, no config inventory — plus the one-line scan footer, which is
+ * always shown (it is the critical summary). Exit-code gating is unaffected
+ * (it is computed from the full finding set in the CLI).
  */
 export function renderQuiet(result: ScanResult): string {
   const criticals = result.findings.filter((f) => f.severity === "critical");
-  if (criticals.length === 0) return "";
 
   const lines: string[] = [];
   for (const f of criticals) {
@@ -90,6 +122,7 @@ export function renderQuiet(result: ScanResult): string {
     lines.push(`  ${f.message}`);
     if (f.evidence) lines.push(chalk.gray(`  evidence: ${f.evidence}`));
   }
+  lines.push(renderFooter(result));
   lines.push("");
   return lines.join("\n");
 }

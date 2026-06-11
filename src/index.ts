@@ -55,7 +55,7 @@ program
   .addOption(
     new Option(
       "--quiet",
-      "Print critical findings only (silent when none). Affects the terminal report; --json/--sarif output is unchanged. Exit codes are unchanged. Mutually exclusive with --verbose.",
+      "Print critical findings and the one-line summary footer only. Affects the terminal report; --json/--sarif output is unchanged. Exit codes are unchanged. Mutually exclusive with --verbose.",
     ).conflicts("verbose"),
   )
   .action(async (opts: CliOpts) => {
