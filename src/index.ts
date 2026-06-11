@@ -13,7 +13,8 @@ interface CliOpts {
   json?: boolean;
   jsonPretty?: boolean;
   sarif?: boolean;
-  noState?: boolean;
+  /** Commander maps the negated `--no-state` flag to `state`: true by default, false when passed. */
+  state?: boolean;
   failOn?: string;
   verbose?: boolean;
   quiet?: boolean;
@@ -62,7 +63,7 @@ program
     try {
       const result = await scan({
         configPaths: opts.config ?? [],
-        noState: opts.noState,
+        noState: opts.state === false,
         log: opts.verbose
           ? (line) => process.stderr.write(chalk.gray(`[verbose] ${line}`) + "\n")
           : undefined,
